@@ -1,50 +1,36 @@
-// src/context/AuthContext.tsx
-import { createContext, useContext, useState } from "react";
-import axios from "axios";
+import { createContext, useContext, useState } from 'react';
 
 interface AuthContextType {
-  isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  token: string | null;
+  login: (token: string) => void;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    !!localStorage.getItem("token")
-  );
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
 
-  const login = async (username: string, password: string) => {
-    try {
-      const response = await axios.post("https://fakestoreapi.com/auth/login", {
-        username,
-        password,
-      });
-
-      const token = response.data.token;
-      if (token) {
-        localStorage.setItem("token", token);
-        setIsAuthenticated(true);
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error("Erro no login:", error);
-      return false;
-    }
+  const login = (newToken: string) => {
+    localStorage.setItem('token', newToken);
+    setToken(newToken);
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    setToken(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+};
+  
